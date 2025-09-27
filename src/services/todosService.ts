@@ -1,5 +1,6 @@
 import { Todo } from '../types/Todo';
 import * as api from '../api/todos';
+import { USER_ID } from '../api/todos';
 
 export const todosService = {
   // Завантажити todos користувача
@@ -11,7 +12,7 @@ export const todosService = {
   async addTodo(title: string): Promise<Todo> {
     const newTodo: Omit<Todo, 'id'> = {
       title,
-      userId: 3504,
+      userId: USER_ID,
       completed: false,
     };
 

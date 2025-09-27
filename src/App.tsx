@@ -85,7 +85,7 @@ export const App: React.FC = () => {
 
     // Створюємо тимчасовий todo для спіннера
     const temp: Todo = {
-      id: -1,
+      id: 0,
       title,
       completed: false,
       userId: USER_ID,
@@ -95,19 +95,14 @@ export const App: React.FC = () => {
     setNewTitle('');
     setIsCreatingTodo(true);
 
-    if (newTodoFiled.current) {
-      newTodoFiled.current!.focus();
-    }
-
     try {
       const created = await todosService.addTodo(title);
 
       setTodos(prev => [...prev, created]);
       setTempTodo(null); // ховаємо тимчасовий todo
 
-      setIsCreatingTodo(false);
     } catch {
-      setError('Unable to add todo');
+      setError('Unable to add a todo');
       setTempTodo(null); // ховаємо тимчасовий todo
 
       if (newTodoFiled.current) {
@@ -117,9 +112,11 @@ export const App: React.FC = () => {
       setNewTitle(title); // залишаємо текст
       setTimeout(() => setError(null), 3000);
 
-      setIsCreatingTodo(false);
     } finally {
-      // setIsCreatingTodo(false);
+      setIsCreatingTodo(false);
+      if (newTodoFiled.current) {
+        newTodoFiled.current!.focus();
+      }
     }
   };
 
@@ -131,7 +128,7 @@ export const App: React.FC = () => {
       await todosService.removeTodo(id);
       setTodos(prev => prev.filter(t => t.id !== id));
     } catch {
-      setError('Unable to delete todo');
+      setError('Unable to delete a todo');
       setTimeout(() => setError(null), 3000);
     } finally {
       setProcessingIds(prev => prev.filter(todoId => todoId !== id));
@@ -147,7 +144,7 @@ export const App: React.FC = () => {
 
       setTodos(prev => prev.map(t => (t.id === updated.id ? updated : t)));
     } catch {
-      setError('Unable to update todo');
+      setError('Unable to update a todo');
       setTimeout(() => setError(null), 3000);
     } finally {
       setProcessingIds(prev => prev.filter(todoId => todoId !== todo.id));
@@ -242,6 +239,7 @@ export const App: React.FC = () => {
               value={newTitle}
               onChange={e => setNewTitle(e.target.value)}
               ref={newTodoFiled}
+              disabled={isCreatingTodo}
             />
           </form>
         </header>
