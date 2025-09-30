@@ -5,6 +5,14 @@ import { UserWarning } from './UserWarning';
 import { getTodos, USER_ID } from './api/todos';
 import { Todo } from './types/Todo';
 import { todosService } from './services/todosService';
+import { Header } from './components/Header/Header';
+import { TodoList } from './components/TodoList/TodoList';
+import { Footer } from './components/Footer/Footer';
+
+import './styles/todoapp.scss';
+
+/*eslint-disable-next-line max-len*/
+import { ErrorNotification } from './components/ErrorNotification/ErrorNotification';
 
 export const App: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -12,15 +20,15 @@ export const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<'all' | 'active' | 'completed'>('all');
   const [newTitle, setNewTitle] = useState('');
-  const newTodoFiled = useRef<HTMLInputElement | null>(null);
+  const newTodoField = useRef<HTMLInputElement | null>(null);
   const [tempTodo, setTempTodo] = useState<Todo | null>(null);
   const [processingIds, setProcessingIds] = useState<number[]>([]); // НОВИЙ СТАН
   const [isCreatingTodo, setIsCreatingTodo] = useState(false);
 
   // Фокусуємо інпут при першому рендері
   useEffect(() => {
-    if (newTodoFiled.current) {
-      newTodoFiled.current!.focus();
+    if (newTodoField.current) {
+      newTodoField.current!.focus();
     }
   }, []);
 
@@ -68,9 +76,6 @@ export const App: React.FC = () => {
     return (filters[status] || filters.all)(todos);
   };
 
-  const activeTodosCount = todos.filter(todo => !todo.completed).length;
-  const completedTodosCount = todos.filter(todo => todo.completed).length;
-
   // Додавання нового todo
   const handleAddTodo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,7 +97,6 @@ export const App: React.FC = () => {
     };
 
     setTempTodo(temp);
-    setNewTitle('');
     setIsCreatingTodo(true);
 
     try {
@@ -101,22 +105,19 @@ export const App: React.FC = () => {
       setTodos(prev => [...prev, created]);
       setTempTodo(null); // ховаємо тимчасовий todo
 
+      setNewTitle('');
     } catch {
       setError('Unable to add a todo');
       setTempTodo(null); // ховаємо тимчасовий todo
 
-      if (newTodoFiled.current) {
-        newTodoFiled.current!.focus();
-      }
-
-      setNewTitle(title); // залишаємо текст
       setTimeout(() => setError(null), 3000);
-
     } finally {
       setIsCreatingTodo(false);
-      if (newTodoFiled.current) {
-        newTodoFiled.current!.focus();
-      }
+      setTimeout(() => {
+        if (newTodoField.current) {
+          newTodoField.current!.focus();
+        }
+      }, 0);
     }
   };
 
@@ -132,6 +133,12 @@ export const App: React.FC = () => {
       setTimeout(() => setError(null), 3000);
     } finally {
       setProcessingIds(prev => prev.filter(todoId => todoId !== id));
+
+      setTimeout(() => {
+        if (newTodoField.current) {
+          newTodoField.current!.focus();
+        }
+      }, 0);
     }
   };
 
@@ -151,22 +158,41 @@ export const App: React.FC = () => {
     }
   };
 
-  // Очистка всіх completed
   const handleClearCompleted = async () => {
     const completedTodos = todos.filter(t => t.completed);
 
     setProcessingIds(prev => [...prev, ...completedTodos.map(t => t.id)]);
 
     try {
-      await Promise.all(completedTodos.map(t => todosService.removeTodo(t.id)));
-      setTodos(prev => prev.filter(t => !t.completed));
-    } catch {
-      setError('Unable to clear completed todos');
-      setTimeout(() => setError(null), 3000);
+      const results = await Promise.allSettled(
+        completedTodos.map(t => todosService.removeTodo(t.id)),
+      );
+
+      // видаляємо ті todos, що успішно пройшли
+      const successfulIds = completedTodos
+        .filter((_, i) => results[i].status === 'fulfilled')
+        .map(t => t.id);
+
+      if (successfulIds.length > 0) {
+        setTodos(prev => prev.filter(t => !successfulIds.includes(t.id)));
+      }
+
+      // якщо хоча б одне видалення впало → показуємо помилку
+      if (results.some(r => r.status === 'rejected')) {
+        setError('Unable to clear completed todos');
+        setTimeout(() => setError(null), 3000);
+      }
     } finally {
       setProcessingIds(prev =>
         prev.filter(id => !completedTodos.map(t => t.id).includes(id)),
       );
+
+      // повертаємо фокус
+      setTimeout(() => {
+        if (newTodoField.current) {
+          newTodoField.current!.focus();
+        }
+      }, 0);
     }
   };
 
@@ -215,193 +241,36 @@ export const App: React.FC = () => {
 
   return (
     <div className="todoapp">
-      <h1 className="todoapp__title">todos</h1>
+      <Header
+        todos={todos}
+        processingIds={processingIds}
+        handleAddTodo={handleAddTodo}
+        handleToggleAll={handleToggleAll}
+        newTitle={newTitle}
+        setNewTitle={setNewTitle}
+        newTodoField={newTodoField}
+        isCreatingTodo={isCreatingTodo}
+      />
 
-      <div className="todoapp__content">
-        <header className="todoapp__header">
-          {todos.length > 0 && (
-            <button
-              type="button"
-              className={`todoapp__toggle-all ${todos.every(todo => todo.completed) ? 'active' : ''}`}
-              data-cy="ToggleAllButton"
-              onClick={handleToggleAll}
-              disabled={processingIds.length > 0}
-            />
-          )}
+      <TodoList
+        todos={todos}
+        processingIds={processingIds}
+        getFilteredTodos={getFilteredTodos}
+        handleToggleTodo={handleToggleTodo}
+        handleRemoveTodo={handleRemoveTodo}
+        tempTodo={tempTodo}
+        isCreatingTodo={isCreatingTodo}
+        isLoading={isLoading}
+      />
 
-          {/* Add a todo on form submit */}
-          <form onSubmit={handleAddTodo}>
-            <input
-              data-cy="NewTodoField"
-              type="text"
-              className="todoapp__new-todo"
-              placeholder="What needs to be done?"
-              value={newTitle}
-              onChange={e => setNewTitle(e.target.value)}
-              ref={newTodoFiled}
-              disabled={isCreatingTodo}
-            />
-          </form>
-        </header>
+      <Footer
+        todos={todos}
+        status={status}
+        setStatus={setStatus}
+        handleClearCompleted={handleClearCompleted}
+      />
 
-        {isLoading && todos.length === 0 ? (
-          <p>Loading...</p>
-        ) : (
-          (todos.length > 0 || tempTodo) && (
-            <section className="todoapp__main" data-cy="TodoList">
-              {/* This is a completed todo */}
-              {getFilteredTodos().map(todo => (
-                <div
-                  data-cy="Todo"
-                  className={todo.completed ? 'todo completed' : 'todo'}
-                  key={todo.id}
-                >
-                  <label className="todo__status-label">
-                    <input
-                      data-cy="TodoStatus"
-                      type="checkbox"
-                      className="todo__status"
-                      checked={todo.completed}
-                      onChange={() => handleToggleTodo(todo)}
-                      disabled={processingIds.includes(todo.id)}
-                    />
-                  </label>
-
-                  <span data-cy="TodoTitle" className="todo__title">
-                    {todo.title}
-                  </span>
-
-                  <button
-                    type="button"
-                    className="todo__remove"
-                    data-cy="TodoDelete"
-                    onClick={() => handleRemoveTodo(todo.id)}
-                    disabled={processingIds.includes(todo.id)}
-                  >
-                    x
-                  </button>
-
-                  {processingIds.includes(todo.id) && (
-                    <div data-cy="TodoLoader" className="modal overlay">
-                      {/*eslint-disable-next-line max-len*/}
-                      <div className="modal-background has-background-white-ter" />
-                      <div className="loader" />
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {/* 9. Відображення тимчасового todo, якщо він є */}
-              {tempTodo && status !== 'completed' && (
-                <div
-                  data-cy="Todo"
-                  className="todo" // нові todo не мають бути completed
-                  key="temp-todo-loader" // ID 0 - це унікальний ID для тимчасового
-                >
-                  <label className="todo__status-label">
-                    <input
-                      data-cy="TodoStatus"
-                      type="checkbox"
-                      className="todo__status"
-                      checked={false} // завжди false для тимчасового
-                      disabled // 10. Блокування чекбоксу для тимчасового todo
-                    />
-                  </label>
-
-                  <span data-cy="TodoTitle" className="todo__title">
-                    {tempTodo.title}
-                  </span>
-
-                  <button
-                    type="button"
-                    className="todo__remove"
-                    data-cy="TodoDelete"
-                    disabled
-                  >
-                    x
-                  </button>
-
-                  {/* Спіннер для тимчасового todo */}
-                  {tempTodo && isCreatingTodo && (
-                    <div data-cy="TodoLoader" className="modal overlay">
-                      <div
-                        className="modal-background
-                        has-background-white-ter"
-                      />
-                      <div className="loader" />
-                    </div>
-                  )}
-                </div>
-              )}
-            </section>
-          )
-        )}
-
-        {todos.length > 0 && (
-          // Hide the footer if there are no todos
-          <footer className="todoapp__footer" data-cy="Footer">
-            <span className="todo-count" data-cy="TodosCounter">
-              {activeTodosCount} items left
-            </span>
-
-            {/* Active link should have the 'selected' class */}
-            <nav className="filter" data-cy="Filter">
-              <a
-                href="#/"
-                className={`filter__link ${status === 'all' ? 'selected' : ''}`}
-                data-cy="FilterLinkAll"
-                onClick={() => setStatus('all')}
-              >
-                All
-              </a>
-
-              <a
-                href="#/active"
-                className={`filter__link ${status === 'active' ? 'selected' : ''}`}
-                data-cy="FilterLinkActive"
-                onClick={() => setStatus('active')}
-              >
-                Active
-              </a>
-
-              <a
-                href="#/completed"
-                className={`filter__link ${status === 'completed' ? 'selected' : ''}`}
-                data-cy="FilterLinkCompleted"
-                onClick={() => setStatus('completed')}
-              >
-                Completed
-              </a>
-            </nav>
-
-            {/* this button should be disabled if there are no completed todos */}
-            <button
-              type="button"
-              className="todoapp__clear-completed"
-              data-cy="ClearCompletedButton"
-              disabled={completedTodosCount === 0}
-              onClick={handleClearCompleted}
-            >
-              Clear completed
-            </button>
-          </footer>
-        )}
-
-        {/*DON'T use conditional rendering to hide the notification*/}
-        {/* Add the 'hidden' class to hide the message smoothly */}
-        <div
-          data-cy="ErrorNotification"
-          className={`notification is-danger is-light has-text-weight-normal ${error ? '' : 'hidden'}`}
-        >
-          {error}
-          <button
-            data-cy="HideErrorButton"
-            type="button"
-            className="delete"
-            onClick={() => setError(null)}
-          />
-        </div>
-      </div>
+      <ErrorNotification error={error} onClose={() => setError(null)} />
     </div>
   );
 };
