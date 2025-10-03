@@ -24,7 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     <header className="todoapp__header">
-      <h1 className="todoapp__title">Todos</h1>
+      <h1 className="todoapp__title">todos</h1>
 
       {todos.length > 0 && (
         <button

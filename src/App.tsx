@@ -90,14 +90,17 @@ export const App: React.FC = () => {
 
     // Створюємо тимчасовий todo для спіннера
     const temp: Todo = {
-      id: 0,
+      id: Date.now(),
+      // id: 0,
       title,
       completed: false,
       userId: USER_ID,
     };
 
+    setProcessingIds(prev => [...prev, temp.id]);
     setTempTodo(temp);
     setIsCreatingTodo(true);
+    setNewTitle('');
 
     try {
       const created = await todosService.addTodo(title);
@@ -105,13 +108,14 @@ export const App: React.FC = () => {
       setTodos(prev => [...prev, created]);
       setTempTodo(null); // ховаємо тимчасовий todo
 
-      setNewTitle('');
+      // setNewTitle('');
     } catch {
       setError('Unable to add a todo');
-      setTempTodo(null); // ховаємо тимчасовий todo
+      // setTempTodo(null); // ховаємо тимчасовий todo
 
-      setTimeout(() => setError(null), 3000);
+      // setTimeout(() => setError(null), 3000);
     } finally {
+      setProcessingIds(prev => prev.filter(id => id !== temp.id));
       setIsCreatingTodo(false);
       setTimeout(() => {
         if (newTodoField.current) {
@@ -147,6 +151,8 @@ export const App: React.FC = () => {
     setProcessingIds(prev => [...prev, todo.id]);
 
     try {
+      await new Promise(res => setTimeout(res, 1000));
+
       const updated = await todosService.toggleTodo(todo);
 
       setTodos(prev => prev.map(t => (t.id === updated.id ? updated : t)));
@@ -217,18 +223,17 @@ export const App: React.FC = () => {
     setProcessingIds(prev => [...prev, ...idsToProcess]);
 
     try {
-      const updatedTodos = await todosService.toggleAllTodos(
-        todosToToggle,
-        newCompletedStatus,
-      );
+      // const updatedTodos = await todosService.toggleAllTodos(
+      //   todosToToggle,
+      //   newCompletedStatus,
+      // );
 
-      // Оновлюємо основний список todos
       setTodos(prev =>
-        prev.map(t => {
-          const updated = updatedTodos.find(u => u.id === t.id);
-
-          return updated || t;
-        }),
+        prev.map(t =>
+          idsToProcess.includes(t.id)
+            ? { ...t, completed: newCompletedStatus }
+            : t,
+        ),
       );
     } catch {
       setError('Unable to toggle all todos');

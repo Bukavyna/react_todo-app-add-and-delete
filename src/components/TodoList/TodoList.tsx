@@ -2,6 +2,9 @@ import React from 'react';
 import { Todo } from '../../types/Todo';
 import { TodoItem } from './TodoItem';
 
+// import { todosService } from '../../services/todosService';
+// import { USER_ID } from '../../api/todos';
+
 interface TodoListProps {
   todos: Todo[];
   processingIds: number[];
