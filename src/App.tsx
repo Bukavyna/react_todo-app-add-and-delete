@@ -90,30 +90,30 @@ export const App: React.FC = () => {
 
     // Створюємо тимчасовий todo для спіннера
     const temp: Todo = {
-      id: Date.now(),
-      // id: 0,
+      id: 0,
       title,
       completed: false,
       userId: USER_ID,
     };
 
-    setProcessingIds(prev => [...prev, temp.id]);
-    setTempTodo(temp);
+    const tempId = 0;
+    const tempTodoWithFixedId: Todo = { ...temp, id: tempId };
+
+    setProcessingIds(prev => [...prev, tempId]);
+    setTempTodo(tempTodoWithFixedId);
     setIsCreatingTodo(true);
-    setNewTitle('');
 
     try {
       const created = await todosService.addTodo(title);
 
       setTodos(prev => [...prev, created]);
+      setNewTitle('');
       setTempTodo(null); // ховаємо тимчасовий todo
-
-      // setNewTitle('');
     } catch {
       setError('Unable to add a todo');
-      // setTempTodo(null); // ховаємо тимчасовий todo
 
-      // setTimeout(() => setError(null), 3000);
+      setTempTodo(null); //
+      setTimeout(() => setError(null), 3000);
     } finally {
       setProcessingIds(prev => prev.filter(id => id !== temp.id));
       setIsCreatingTodo(false);
@@ -185,7 +185,7 @@ export const App: React.FC = () => {
 
       // якщо хоча б одне видалення впало → показуємо помилку
       if (results.some(r => r.status === 'rejected')) {
-        setError('Unable to clear completed todos');
+        setError('Unable to delete a todo');
         setTimeout(() => setError(null), 3000);
       }
     } finally {

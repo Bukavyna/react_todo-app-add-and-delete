@@ -23,7 +23,7 @@ export const TodoList: React.FC<TodoListProps> = ({
   handleToggleTodo,
   handleRemoveTodo,
   tempTodo,
-  isCreatingTodo,
+  // isCreatingTodo,
   isLoading,
 }) => {
   return (
@@ -44,34 +44,13 @@ export const TodoList: React.FC<TodoListProps> = ({
             ))}
 
             {tempTodo && (
-              <div className="todo" key="temp-todo-loader">
-                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-                <label className="todo__status-label">
-                  <input
-                    data-cy="TodoStatus"
-                    type="checkbox"
-                    className="todo__status"
-                    checked={false}
-                    disabled
-                  />
-                </label>
-                <span data-cy="TodoTitle" className="todo__title">
-                  {tempTodo.title}
-                </span>
-                <button
-                  type="button"
-                  className="todo__remove"
-                  data-cy="TodoDelete"
-                  disabled
-                />
-                {isCreatingTodo && (
-                  <div data-cy="TodoLoader" className="modal overlay is-active">
-                    {/*eslint-disable-next-line max-len*/}
-                    <div className="modal-background has-background-white-ter" />
-                    <div className="loader" />
-                  </div>
-                )}
-              </div>
+              <TodoItem
+                key={0}
+                todo={tempTodo}
+                processingIds={[...processingIds, 0]}
+                handleToggleTodo={() => {}}
+                handleRemoveTodo={() => {}}
+              />
             )}
           </section>
         )

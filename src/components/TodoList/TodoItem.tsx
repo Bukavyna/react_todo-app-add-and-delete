@@ -1,18 +1,11 @@
 import React from 'react';
 import { Todo } from '../../types/Todo';
 
-// const [isRemoving, setIsRemoving] = useState(false);
-//
-// const handleRemoveClick = () => {
-//   setIsRemoving(true);
-// }
-
 interface TodoItemProps {
   todo: Todo;
   processingIds: number[];
   handleToggleTodo: (todo: Todo) => void;
   handleRemoveTodo: (id: number) => void;
-  isBulkProcessing?: boolean;
 }
 
 export const TodoItem: React.FC<TodoItemProps> = ({
@@ -20,7 +13,6 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   processingIds,
   handleToggleTodo,
   handleRemoveTodo,
-  isBulkProcessing = false,
 }) => {
   const isProcessing = processingIds.includes(todo.id);
 
@@ -57,21 +49,13 @@ export const TodoItem: React.FC<TodoItemProps> = ({
         x
       </button>
 
-      {isProcessing && !isBulkProcessing && (
-        <div
-          data-cy="TodoLoader"
-          className={`todo__overlay ${isBulkProcessing ? 'todo__overlay-hidden' : ''}`}
-        >
-          <div className="todo__loader" />
-        </div>
-      )}
-
-      {/*<div*/}
-      {/*  data-cy="TodoLoader"*/}
-      {/*  className={`todo__overlay ${isBulkProcessing ? 'todo__overlay-hidden' : ''}`}*/}
-      {/*>*/}
-      {/*  <div className="todo__loader" />*/}
-      {/*</div>*/}
+      <div
+        data-cy="TodoLoader"
+        className={`modal overlay ${isProcessing ? 'is-active' : ''}`}
+      >
+        <div className="modal-background has-background-white-ter" />
+        <div className="loader" />
+      </div>
     </div>
   );
 };
